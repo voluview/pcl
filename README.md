@@ -1,6 +1,6 @@
 ## Installation
 
-```bash
+```sh
 poetry env use python3.10 && poetry install
 ```
 
