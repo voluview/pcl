@@ -26,7 +26,6 @@ class Gui:
             self.window,
             text="Init Calibrator",
             command=self.initialise_calibrator,
-            state=tk.DISABLED,
         )
         self.init_pointcloud_button = ttk.Button(
             self.window,
