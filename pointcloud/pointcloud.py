@@ -159,7 +159,7 @@ class Pointcloud(Camera):
         self,
         depth_frame,
         image_frame,
-        downsample=config.downsample,
+        # downsample=config.downsample,
         remove_noise=config.remove_noise,
     ):
         """
@@ -178,8 +178,10 @@ class Pointcloud(Camera):
             rgbd_image, self.pinhole_camera_intrinsic, self.world_to_cam
         )
 
-        if downsample:
-            point_cloud = point_cloud.voxel_down_sample(voxel_size=0.01)
+        # if downsample:
+        #     point_cloud = point_cloud.voxel_down_sample(
+        #         voxel_size=config.downsample_size
+        #     )
 
         if remove_noise:
             point_cloud = point_cloud.remove_statistical_outlier(

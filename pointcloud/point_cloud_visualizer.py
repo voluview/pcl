@@ -69,25 +69,41 @@ class PointCloudVisualizer:
         while self.running:
             self.update()
 
-    def update(self, show=config.show):
+    def update(
+        self,
+        show=config.show,
+        remove_color_live=config.remove_color_live,
+        downsample=config.downsample,
+    ):
         """
         Updates the point cloud frames.
         """
 
         self.point_cloud.clear()
+        sum_point_cloud = o3d.geometry.PointCloud()
 
         for pointcloud in self.pointclouds:
             pointcloud.update()
 
-            self.point_cloud += pointcloud.point_cloud
+            # self.point_cloud += pointcloud.point_cloud
+            sum_point_cloud += pointcloud.point_cloud
 
-        if config.remove_color_live:
-            self.point_cloud = remove_color_points(
-                self.point_cloud, config.color_to_remove, config.color_treshold
+        if downsample:
+            sum_point_cloud = sum_point_cloud.voxel_down_sample(
+                voxel_size=config.downsample_size
+            )
+
+        if remove_color_live:
+            sum_point_cloud = remove_color_points(
+                sum_point_cloud, config.color_to_remove, config.color_treshold
             )
 
         if self.save:
-            self.cache.append(deepcopy(self.point_cloud))
+            # self.cache.append(deepcopy(self.point_cloud))
+            self.cache.append(sum_point_cloud)
+
+        self.point_cloud.points = sum_point_cloud.points
+        self.point_cloud.colors = sum_point_cloud.colors
 
         print(
             "FPS: {:.2f}".format(self.fps_counter.show()),

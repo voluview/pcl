@@ -38,7 +38,7 @@ flood_light = 200  # Flood light brightness, in mA, 0..1500
 
 # Range configuration
 min_range = 350  # mm (from 350)
-max_range = 700  # mm
+max_range = 600  # mm
 
 # Depth configuration
 stereo_preset = (
@@ -72,7 +72,8 @@ spatial_hole_filling_radius = 25  # Fill gaps in disparity map
 decimation = 2  # Downscale factor for disparity map
 
 # Pointcloud generation configuration
-downsample = False  # Voxel downsampling
+downsample = True  # Voxel downsampling
+downsample_size = 0.0005  # Voxel downsampling size
 remove_noise = False  # Remove noise from point cloud
 
 # Pointcloud color mask
