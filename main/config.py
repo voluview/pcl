@@ -33,12 +33,12 @@ manual_whitebalance = False
 whitebalance = 5000  # 1000-12000 (blue -> yellow)
 
 # Camera IR settings
-laser_dot = 700  # Laser dot projector brightness, in mA, 0..1200
-flood_light = 200  # Flood light brightness, in mA, 0..1500
+laser_dot = 800  # Laser dot projector brightness, in mA, 0..1200
+flood_light = 300  # Flood light brightness, in mA, 0..1500
 
 # Range configuration
 min_range = 350  # mm (from 350)
-max_range = 600  # mm
+max_range = 650  # mm
 
 # Depth configuration
 stereo_preset = (
@@ -51,9 +51,9 @@ extended = (
 subpixel = True  # Better accuracy for longer distance, fractional disparity 32-levels
 subpixel_bits = 5  # Fractional disparity bits (3, 4, 5)
 disparity_shift = 10  # Disparity shift
-confidence_threshold = 170  # 0-255, 255 = low confidence, 0 = high confidence
+confidence_threshold = 180  # 0-255, 255 = low confidence, 0 = high confidence
 median = (
-    dai.StereoDepthProperties.MedianFilter.MEDIAN_OFF
+    dai.StereoDepthProperties.MedianFilter.KERNEL_7x7
 )  # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7
 
 # Post-processing configuration
@@ -67,19 +67,19 @@ persistency_mode = (
 
 spatial = False  # Filter spatial noise
 spatial_iterations = 1  # Number of iterations for spatial noise filter
-spatial_hole_filling_radius = 25  # Fill gaps in disparity map
+spatial_hole_filling_radius = 30  # Fill gaps in disparity map
 
 decimation = 2  # Downscale factor for disparity map
 
 # Pointcloud generation configuration
-downsample = True  # Voxel downsampling
+downsample = False  # Voxel downsampling
 downsample_size = 0.0005  # Voxel downsampling size
 remove_noise = False  # Remove noise from point cloud
 
 # Pointcloud color mask
 remove_color_live = False  # Remove color from point cloud
-color_to_remove = "green"  # Color to remove from point cloud
-color_treshold = 0.4  # Treshold for color removal
+color_to_remove = "red"  # Color to remove from point cloud
+color_treshold = 0.9  # Treshold for color removal
 
 # Pointcloud fine alignment configuration
 voxel_radius = [0.01]  # Voxel downsampling size

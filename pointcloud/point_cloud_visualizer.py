@@ -46,14 +46,14 @@ class PointCloudVisualizer:
         opt.point_size = config.point_size
 
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(
-            size=0.15, origin=[0, 0, 0]
+            size=0.15, origin=[0, -0.2, 0]
         )
         self.point_cloud_window.add_geometry(origin)
 
         view = self.point_cloud_window.get_view_control()
         view.set_constant_z_far(config.max_range * 2)
 
-        self.fps_counter = FPSCounter(duration=10)
+        self.fps_counter = FPSCounter(duration=5)
         self.frame_count = 0
 
         self.record_path = os.path.join(
@@ -74,36 +74,36 @@ class PointCloudVisualizer:
         show=config.show,
         remove_color_live=config.remove_color_live,
         downsample=config.downsample,
+        remove_noise=config.remove_noise,
     ):
         """
         Updates the point cloud frames.
         """
 
         self.point_cloud.clear()
-        sum_point_cloud = o3d.geometry.PointCloud()
 
         for pointcloud in self.pointclouds:
             pointcloud.update()
 
-            # self.point_cloud += pointcloud.point_cloud
-            sum_point_cloud += pointcloud.point_cloud
+            self.point_cloud += pointcloud.point_cloud
 
         if downsample:
-            sum_point_cloud = sum_point_cloud.voxel_down_sample(
+            self.point_cloud = self.point_cloud.voxel_down_sample(
                 voxel_size=config.downsample_size
             )
 
+        if remove_noise:
+            self.point_cloud = self.point_cloud.remove_statistical_outlier(
+                nb_neighbors=30, std_ratio=0.1
+            )[0]
+
         if remove_color_live:
-            sum_point_cloud = remove_color_points(
-                sum_point_cloud, config.color_to_remove, config.color_treshold
+            self.point_cloud = remove_color_points(
+                self.point_cloud, config.color_to_remove, config.color_treshold
             )
 
         if self.save:
-            # self.cache.append(deepcopy(self.point_cloud))
-            self.cache.append(sum_point_cloud)
-
-        self.point_cloud.points = sum_point_cloud.points
-        self.point_cloud.colors = sum_point_cloud.colors
+            self.cache.append(deepcopy(self.point_cloud))
 
         print(
             "FPS: {:.2f}".format(self.fps_counter.show()),
@@ -113,8 +113,9 @@ class PointCloudVisualizer:
 
         if show:
             self.point_cloud_window.update_geometry(self.point_cloud)
-            self.point_cloud_window.poll_events()
-            self.point_cloud_window.update_renderer()
+
+        self.point_cloud_window.poll_events()
+        self.point_cloud_window.update_renderer()
 
     def align_point_clouds(self):
         """

@@ -59,7 +59,7 @@ class Pointcloud(Camera):
 
         cam_stereo.initialConfig.setMedianFilter(config.median)
         cam_stereo.initialConfig.setConfidenceThreshold(config.confidence_threshold)
-        cam_stereo.initialConfig.setDisparityShift(config.disparity_shift)
+        # cam_stereo.initialConfig.setDisparityShift(config.disparity_shift)
         cam_stereo.setLeftRightCheck(config.lrcheck)
         cam_stereo.setExtendedDisparity(config.extended)
         cam_stereo.setSubpixel(config.subpixel)
@@ -72,9 +72,9 @@ class Pointcloud(Camera):
         init_config.postProcessing.speckleFilter.enable = config.speckle
         init_config.postProcessing.speckleFilter.speckleRange = config.speckle_range
         init_config.postProcessing.temporalFilter.enable = config.temporal
-        init_config.postProcessing.temporalFilter.persistencyMode = (
-            config.persistency_mode
-        )
+        # init_config.postProcessing.temporalFilter.persistencyMode = (
+        #     config.persistency_mode
+        # )
         init_config.postProcessing.spatialFilter.enable = config.spatial
         init_config.postProcessing.spatialFilter.holeFillingRadius = (
             config.spatial_hole_filling_radius
@@ -95,21 +95,27 @@ class Pointcloud(Camera):
         xout_image = pipeline.createXLinkOut()
         xout_image.setStreamName("image")
 
-        cam_rgb = pipeline.createColorCamera()
-        cam_rgb.setResolution(config.rgb_resolution)
-        cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
-        cam_rgb.setIspScale(1, config.isp_scale)
+        if config.COLOR:
+            cam_rgb = pipeline.createColorCamera()
+            cam_rgb.setResolution(config.rgb_resolution)
+            cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
+            cam_rgb.setIspScale(1, config.isp_scale)
 
-        if config.manual_exposure:
-            cam_rgb.initialControl.setManualExposure(config.exposure, config.iso)
-        if config.manual_focus:
-            cam_rgb.initialControl.setManualFocus(config.focus)
-        if config.manual_whitebalance:
-            cam_rgb.initialControl.setManualWhiteBalance(config.whitebalance)
+            if config.manual_exposure:
+                cam_rgb.initialControl.setManualExposure(config.exposure, config.iso)
+            if config.manual_focus:
+                cam_rgb.initialControl.setManualFocus(config.focus)
+            if config.manual_whitebalance:
+                cam_rgb.initialControl.setManualWhiteBalance(config.whitebalance)
 
-        cam_stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
-        cam_rgb.isp.link(xout_image.input)
-        self.image_size = cam_rgb.getIspSize()
+            cam_stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
+            cam_rgb.isp.link(xout_image.input)
+            self.image_size = cam_rgb.getIspSize()
+
+        else:
+            cam_stereo.setDepthAlign(dai.CameraBoardSocket.LEFT)
+            cam_stereo.rectifiedRight.link(xout_image.input)
+            self.image_size = mono_right.getResolutionSize()
 
         return pipeline
 
@@ -131,8 +137,68 @@ class Pointcloud(Camera):
         self.depth_frame = msg_sync["depth"].getFrame()
         self.image_frame = msg_sync["image"].getCvFrame()
 
-        rgb = cv2.cvtColor(self.image_frame, cv2.COLOR_BGR2RGB)
-        self.rgbd_to_point_cloud(self.depth_frame, rgb)
+        # if len(self.image_frame.shape) == 3 and self.image_frame.shape[2] == 3:
+        #     image = cv2.cvtColor(self.image_frame, cv2.COLOR_BGR2RGB)
+        # else:
+        #     image = cv2.cvtColor(self.image_frame, cv2.COLOR_GRAY2RGB)
+        #     # image = self.image_frame
+
+        image = cv2.cvtColor(self.image_frame, cv2.COLOR_BGR2RGB)
+
+        self.rgbd_to_point_cloud(self.depth_frame, image)
+
+    def rgbd_to_point_cloud(
+        self,
+        depth_frame,
+        image_frame,
+    ):
+        """
+        Converts the RGBD frames to a point cloud.
+        """
+
+        # print(len(image_frame.shape), len(image_frame.shape) != 3)
+
+        # image_frame = image_frame.astype(np.uint8)
+
+        rgb_o3d = o3d.geometry.Image(image_frame)
+
+        df = np.copy(depth_frame).astype(np.float32)
+        # df -= 20
+        depth_o3d = o3d.geometry.Image(df)
+
+        # is_grayscale = len(self.image_frame.shape) == 2 or (
+        #     len(self.image_frame.shape) == 3 and self.image_frame.shape[2] == 1
+        # )
+
+        # print("Image shape:", image_frame.shape, "dtype:", image_frame.dtype)
+        # print("Depth shape:", depth_frame.shape, "dtype:", depth_frame.dtype)
+
+        # rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+        #     rgb_o3d, depth_o3d, convert_rgb_to_intensity=is_grayscale
+        # )
+
+        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+            rgb_o3d, depth_o3d, convert_rgb_to_intensity=(len(image_frame.shape) != 3)
+        )
+
+        self.point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(
+            rgbd_image, self.pinhole_camera_intrinsic, self.world_to_cam
+        )
+
+        # self.point_cloud.points = point_cloud.points
+        # self.point_cloud.colors = point_cloud.colors
+
+        T = np.eye(4)
+        # mirror y axis
+        T[1, 1] = -1
+        # correct upside down z axis
+        T[2, 2] = -1
+        self.point_cloud.transform(T)
+
+        # apply point cloud alignment transform
+        self.point_cloud.transform(self.point_cloud_alignment)
+
+        # return self.point_cloud
 
     def save_point_cloud_alignment(self):
         """
@@ -154,49 +220,3 @@ class Pointcloud(Camera):
         )
 
         logger.info(f"{self.friendly_id}: Point cloud alignment saved")
-
-    def rgbd_to_point_cloud(
-        self,
-        depth_frame,
-        image_frame,
-        # downsample=config.downsample,
-        remove_noise=config.remove_noise,
-    ):
-        """
-        Converts the RGBD frames to a point cloud.
-        """
-
-        rgb_o3d = o3d.geometry.Image(image_frame)
-        df = np.copy(depth_frame).astype(np.float32)
-        # df -= 20
-        depth_o3d = o3d.geometry.Image(df)
-        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-            rgb_o3d, depth_o3d, convert_rgb_to_intensity=(len(image_frame.shape) != 3)
-        )
-
-        point_cloud = o3d.geometry.PointCloud.create_from_rgbd_image(
-            rgbd_image, self.pinhole_camera_intrinsic, self.world_to_cam
-        )
-
-        # if downsample:
-        #     point_cloud = point_cloud.voxel_down_sample(
-        #         voxel_size=config.downsample_size
-        #     )
-
-        if remove_noise:
-            point_cloud = point_cloud.remove_statistical_outlier(
-                nb_neighbors=30, std_ratio=0.1
-            )[0]
-
-        self.point_cloud.points = point_cloud.points
-        self.point_cloud.colors = point_cloud.colors
-
-        # correct upside down z axis
-        T = np.eye(4)
-        T[2, 2] = -1
-        self.point_cloud.transform(T)
-
-        # apply point cloud alignment transform
-        self.point_cloud.transform(self.point_cloud_alignment)
-
-        return self.point_cloud

@@ -59,7 +59,7 @@ class Gui:
 
         logger.info("App started")
 
-        # self.initialise_pointcloud()  # Use to automatically start the pointcloud
+        self.initialise_pointcloud()  # Use to automatically start the pointcloud
 
     def run(self):
         """

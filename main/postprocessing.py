@@ -11,9 +11,9 @@ def main():
     Processes the point cloud files.
     """
 
-    directory = os.path.expanduser("~/view")
-    input_folder = os.path.join(directory, "records")
-    output_folder = os.path.join(directory, "records", "postprocessed")
+    path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_folder = os.path.join(path, "records")
+    output_folder = os.path.join(input_folder, "postprocessed")
 
     os.makedirs(output_folder, exist_ok=True)
 

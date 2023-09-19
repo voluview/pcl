@@ -29,7 +29,8 @@ class Camera:
         # Camera intrinsic parameters
         calibration = self.device.readCalibration()
         self.intrinsics = calibration.getCameraIntrinsics(
-            dai.CameraBoardSocket.RGB, dai.Size2f(*self.image_size)
+            dai.CameraBoardSocket.RGB if config.COLOR else dai.CameraBoardSocket.RIGHT,
+            dai.Size2f(*self.image_size),
         )
 
         self.pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
