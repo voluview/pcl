@@ -69,7 +69,7 @@ spatial = False  # Filter spatial noise
 spatial_iterations = 1  # Number of iterations for spatial noise filter
 spatial_hole_filling_radius = 30  # Fill gaps in disparity map
 
-decimation = 2  # Downscale factor for disparity map
+decimation = 1  # Downscale factor for disparity map
 
 # Pointcloud generation configuration
 downsample = False  # Voxel downsampling

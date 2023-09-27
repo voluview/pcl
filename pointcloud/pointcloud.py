@@ -113,7 +113,6 @@ class Pointcloud(Camera):
             self.image_size = cam_rgb.getIspSize()
 
         else:
-            cam_stereo.setDepthAlign(dai.CameraBoardSocket.LEFT)
             cam_stereo.rectifiedRight.link(xout_image.input)
             self.image_size = mono_right.getResolutionSize()
 
@@ -137,12 +136,6 @@ class Pointcloud(Camera):
         self.depth_frame = msg_sync["depth"].getFrame()
         self.image_frame = msg_sync["image"].getCvFrame()
 
-        # if len(self.image_frame.shape) == 3 and self.image_frame.shape[2] == 3:
-        #     image = cv2.cvtColor(self.image_frame, cv2.COLOR_BGR2RGB)
-        # else:
-        #     image = cv2.cvtColor(self.image_frame, cv2.COLOR_GRAY2RGB)
-        #     # image = self.image_frame
-
         image = cv2.cvtColor(self.image_frame, cv2.COLOR_BGR2RGB)
 
         self.rgbd_to_point_cloud(self.depth_frame, image)
@@ -156,26 +149,10 @@ class Pointcloud(Camera):
         Converts the RGBD frames to a point cloud.
         """
 
-        # print(len(image_frame.shape), len(image_frame.shape) != 3)
-
-        # image_frame = image_frame.astype(np.uint8)
-
         rgb_o3d = o3d.geometry.Image(image_frame)
 
         df = np.copy(depth_frame).astype(np.float32)
-        # df -= 20
         depth_o3d = o3d.geometry.Image(df)
-
-        # is_grayscale = len(self.image_frame.shape) == 2 or (
-        #     len(self.image_frame.shape) == 3 and self.image_frame.shape[2] == 1
-        # )
-
-        # print("Image shape:", image_frame.shape, "dtype:", image_frame.dtype)
-        # print("Depth shape:", depth_frame.shape, "dtype:", depth_frame.dtype)
-
-        # rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-        #     rgb_o3d, depth_o3d, convert_rgb_to_intensity=is_grayscale
-        # )
 
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
             rgb_o3d, depth_o3d, convert_rgb_to_intensity=(len(image_frame.shape) != 3)

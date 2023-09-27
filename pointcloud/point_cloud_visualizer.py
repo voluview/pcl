@@ -152,6 +152,8 @@ class PointCloudVisualizer:
 
                 pointcloud.point_cloud_alignment = result_icp.transformation
 
+                print(pointcloud.point_cloud_alignment)
+
     def reset_alignment(self):
         """
         Resets the ICP point cloud alignment.
@@ -159,7 +161,6 @@ class PointCloudVisualizer:
 
         for pointcloud in self.pointclouds:
             pointcloud.point_cloud_alignment = np.identity(4)
-            pointcloud.save_point_cloud_alignment()
 
     def toggle_play(self):
         """
